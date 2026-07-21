@@ -1,21 +1,21 @@
 [project]
-name = "rag-search-app"
+name = "ragdemo"
 version = "0.1.0"
 description = "Add your description here"
 readme = "README.md"
 requires-python = ">=3.13"
 dependencies = [
-    "beautifulsoup4>=4.15.0",
-    "faiss-cpu>=1.14.3",
-    "ipykernel>=7.3.0",
-    "langchain>=1.3.14",
-    "langchain-community>=0.4.2",
-    "langchain-openai>=1.3.5",
-    "langgraph>=1.2.9",
-    "openai>=2.46.0",
-    "pydantic>=2.13.4",
-    "python-dotenv>=1.2.2",
-    "requests>=2.34.2",
-    "streamlit>=1.59.2",
+    "beautifulsoup4>=4.13.4",
+    "faiss-cpu>=1.12.0",
+    "langchain>=0.3.27",
+    "langchain-community>=0.3.27",
+    "langchain-openai>=0.3.30",
+    "langgraph>=0.6.5",
+    "openai>=1.99.9",
+    "pydantic>=2.11.7",
+    "pypdf>=6.0.0",
+    "python-dotenv>=1.1.1",
+    "requests>=2.32.4",
+    "streamlit>=1.48.1",
     "wikipedia>=1.4.0",
 ]

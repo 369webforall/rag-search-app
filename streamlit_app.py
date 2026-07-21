@@ -5,8 +5,6 @@ from pathlib import Path
 import sys
 import time
 
-
-
 # Add src to path
 sys.path.append(str(Path(__file__).parent))
 
@@ -46,51 +44,34 @@ def init_session_state():
 @st.cache_resource
 def initialize_rag():
     """Initialize the RAG system (cached)"""
-
     try:
-
+        # Initialize components
         llm = Config.get_llm()
-
         doc_processor = DocumentProcessor(
             chunk_size=Config.CHUNK_SIZE,
             chunk_overlap=Config.CHUNK_OVERLAP
         )
-
         vector_store = VectorStore()
-
-
+        
         # Use default URLs
         urls = Config.DEFAULT_URLS
-
-
-        # Load + split documents
-        documents = doc_processor.process_documents(urls)
-
-        st.write(f"Created {len(documents)} chunks")
-
-
-        # Create FAISS vector store
-        vector_store.create_vector_store(documents)
-
-
-        # Build LangGraph
+        
+        # Process documents
+        documents = doc_processor.process_urls(urls)
+        
+        # Create vector store
+        vector_store.create_vectorstore(documents)
+        
+        # Build graph
         graph_builder = GraphBuilder(
             retriever=vector_store.get_retriever(),
             llm=llm
         )
-
         graph_builder.build()
-
-
+        
         return graph_builder, len(documents)
-
-
     except Exception as e:
-
-        st.error(
-            f"Failed to initialize: {str(e)}"
-        )
-
+        st.error(f"Failed to initialize: {str(e)}")
         return None, 0
 
 def main():

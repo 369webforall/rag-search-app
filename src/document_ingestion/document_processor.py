@@ -1,225 +1,104 @@
-"""
-document_processor.py
+"""Document processing module for loading and splitting documents"""
 
-This module is responsible for:
+from typing import List
+from langchain_community.document_loaders import WebBaseLoader
+from langchain_text_splitters import RecursiveCharacterTextSplitter
+from langchain.schema import Document
 
-1. Loading documents
-    - Website (URL)
-    - PDF file
-    - Folder of PDF files
-    - Text file
-
-2. Splitting large documents into smaller chunks
-
-These chunks are later converted into embeddings
-and stored inside the vector database.
-"""
-
-from pathlib import Path
 from typing import List, Union
-
-from langchain_core.documents import Document
-
-
+from pathlib import Path
 from langchain_community.document_loaders import (
     WebBaseLoader,
     PyPDFLoader,
-    PyPDFDirectoryLoader,
     TextLoader,
+    PyPDFDirectoryLoader
 )
 
-from langchain_text_splitters import RecursiveCharacterTextSplitter
-
-
 class DocumentProcessor:
-    """
-    Handles loading and splitting documents.
-
-    Think of this class as the "Document Preparation" stage
-    of a RAG pipeline.
-    """
-
-    def __init__(
-        self,
-        chunk_size: int = 500,
-        chunk_overlap: int = 50,
-    ):
+    """Handles document loading and processing"""
+    
+    def __init__(self, chunk_size: int = 500, chunk_overlap: int = 50):
         """
-        Create a text splitter.
-
-        Parameters
-        ----------
-        chunk_size:
-            Maximum number of characters inside one chunk.
-
-        chunk_overlap:
-            Number of characters repeated between chunks.
-            This helps preserve context.
+        Initialize document processor
+        
+        Args:
+            chunk_size: Size of text chunks
+            chunk_overlap: Overlap between chunks
         """
-
+        self.chunk_size = chunk_size
+        self.chunk_overlap = chunk_overlap
         self.splitter = RecursiveCharacterTextSplitter(
             chunk_size=chunk_size,
-            chunk_overlap=chunk_overlap,
+            chunk_overlap=chunk_overlap
         )
-
-    ###################################################################
-    # Loading Documents
-    ###################################################################
-
     def load_from_url(self, url: str) -> List[Document]:
-        """
-        Load a webpage.
-
-        Example:
-            https://python.langchain.com/docs/
-
-        Returns:
-            List of LangChain Document objects
-        """
-
+        """Load document(s) from a URL"""
         loader = WebBaseLoader(url)
         return loader.load()
 
-    def load_from_pdf(self, pdf_path: Union[str, Path]) -> List[Document]:
-        """
-        Load a single PDF.
-
-        Example:
-            data/python.pdf
-        """
-
-        loader = PyPDFLoader(str(pdf_path))
+    def load_from_pdf_dir(self, directory: Union[str, Path]) -> List[Document]:
+        """Load documents from all PDFs inside a directory"""
+        loader = PyPDFDirectoryLoader(str(directory))
         return loader.load()
 
-    def load_from_pdf_directory(
-        self,
-        folder: Union[str, Path],
-    ) -> List[Document]:
-        """
-        Load every PDF inside a folder.
-
-        Example:
-
-            data/
-                python.pdf
-                ai.pdf
-                machine_learning.pdf
-        """
-
-        loader = PyPDFDirectoryLoader(str(folder))
+    def load_from_txt(self, file_path: Union[str, Path]) -> List[Document]:
+        """Load document(s) from a TXT file"""
+        loader = TextLoader(str(file_path), encoding="utf-8")
         return loader.load()
 
-    def load_from_text(
-        self,
-        text_file: Union[str, Path],
-    ) -> List[Document]:
-        """
-        Load a text (.txt) file.
-        """
-
-        loader = TextLoader(
-            str(text_file),
-            encoding="utf-8",
-        )
+    def load_from_pdf(self, file_path: Union[str, Path]) -> List[Document]:
+        """Load document(s) from a PDF file"""
+        loader = PyPDFDirectoryLoader(str("data"))
         return loader.load()
+    
+    def load_documents(self, sources: List[str]) -> List[Document]:
+        """
+        Load documents from URLs, PDF directories, or TXT files
 
+        Args:
+            sources: List of URLs, PDF folder paths, or TXT file paths
 
- ###################################################################
-    # Automatically Detect File Type
-###################################################################
-
-    def load_documents(
-        self,
-        sources: List[Union[str, Path]],
-    ) -> List[Document]:
-
-        documents: List[Document] = []
-
-        for source in sources:
-
-            # URL
-            if isinstance(source, str) and source.startswith(
-                ("http://", "https://")
-            ):
-                documents.extend(
-                    self.load_from_url(source)
-                )
-                continue
-
-            source = Path(source)
-
-            # PDF folder
-            if source.is_dir():
-                documents.extend(
-                    self.load_from_pdf_directory(source)
-                )
-
-            # PDF file
-            elif source.suffix.lower() == ".pdf":
-                documents.extend(
-                    self.load_from_pdf(source)
-                )
-
-            # Text file
-            elif source.suffix.lower() == ".txt":
-                documents.extend(
-                    self.load_from_text(source)
-                )
-
+        Returns:
+            List of loaded documents
+        """
+        docs: List[Document] = []
+        for src in sources:
+            if src.startswith("http://") or src.startswith("https://"):
+                docs.extend(self.load_from_url(src))
+           
+            path = Path("data")
+            if path.is_dir():  # PDF directory
+                docs.extend(self.load_from_pdf_dir(path))
+            elif path.suffix.lower() == ".txt":
+                docs.extend(self.load_from_txt(path))
             else:
                 raise ValueError(
-                    f"Unsupported file type: {source}"
+                    f"Unsupported source type: {src}. "
+                    "Use URL, .txt file, or PDF directory."
                 )
-
-        return documents
-
-    ###################################################################
-    # Split Documents
-    ###################################################################
-
-    def split_documents(
-        self,
-        documents: List[Document],
-    ) -> List[Document]:
+        return docs
+    
+    def split_documents(self, documents: List[Document]) -> List[Document]:
         """
-        Split documents into smaller chunks.
-
-        Example:
-
-        20-page PDF
-                ↓
-
-        Chunk 1
-        Chunk 2
-        Chunk 3
-        Chunk 4
+        Split documents into chunks
+        
+        Args:
+            documents: List of documents to split
+            
+        Returns:
+            List of split documents
         """
-
         return self.splitter.split_documents(documents)
-
-    ###################################################################
-    # Complete Pipeline
-    ###################################################################
-
-    def process_documents(
-        self,
-        sources: List[Union[str, Path]],
-    ) -> List[Document]:
+    
+    def process_urls(self, urls: List[str]) -> List[Document]:
         """
-        Complete document processing pipeline.
-
-        Step 1:
-            Load documents
-
-        Step 2:
-            Split them into chunks
-
-        Step 3:
-            Return the chunks
+        Complete pipeline to load and split documents
+        
+        Args:
+            urls: List of URLs to process
+            
+        Returns:
+            List of processed document chunks
         """
-
-        documents = self.load_documents(sources)
-
-        chunks = self.split_documents(documents)
-
-        return chunks
+        docs = self.load_documents(urls)
+        return self.split_documents(docs)

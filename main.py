@@ -5,10 +5,6 @@ from pathlib import Path
 
 # Add src to path
 sys.path.append(str(Path(__file__).parent))
-from src.document_ingestion.document_processor import DocumentProcessor
-import inspect
-
-print(inspect.getfile(DocumentProcessor))
 
 from src.config.config import Config
 from src.document_ingestion.document_processor import DocumentProcessor
@@ -53,11 +49,11 @@ class AgenticRAG:
     def _setup_vectorstore(self):
         """Setup vector store with processed documents"""
         print(f"📄 Processing {len(self.urls)} URLs...")
-        documents = self.doc_processor.process_documents(self.urls)
+        documents = self.doc_processor.process_urls(self.urls)
         print(f"📊 Created {len(documents)} document chunks")
         
         print("🔍 Creating vector store...")
-        self.vector_store.create_vector_store(documents)
+        self.vector_store.create_vectorstore(documents)
     
     def ask(self, question: str) -> str:
         """
